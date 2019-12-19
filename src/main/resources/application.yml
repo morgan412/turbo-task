@@ -1,4 +1,5 @@
 spring:
+  # 任务调度
   task:
     execution:
       pool:
@@ -8,7 +9,7 @@ spring:
   # jackson
   jackson:
     date-format: yyyy-MM-dd HH:mm:ss
-    default-property-inclusion: non_null
+    time-zone: GMT+8
 
 server:
   port: 80
