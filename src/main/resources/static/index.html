@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="description" content="">
+    <meta name="author" content="">
+    <title>定时任务控制面板</title>
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css">
+</head>
+<body>
+<div class="container-fluid">
+    <h1>定时任务控制面板
+        <button class="btn  btn-outline-dark" onclick="location.reload()">刷新</button>
+    </h1>
+    <table class="table table-bordered table-condensed  table-sm">
+        <thead class="thead-light">
+        <tr>
+            <th>#</th>
+            <th>执行类</th>
+            <th>执行方法</th>
+            <th>描述</th>
+            <th>cron表达式</th>
+            <th>执行周期</th>
+            <th>状态</th>
+            <th>上一次开始时间</th>
+            <th>上一次执行成功时间</th>
+            <th>下一次执行时间</th>
+            <th>是否异常</th>
+            <th>上一次执行异常时间</th>
+            <th>异常信息</th>
+            <th></th>
+        </tr>
+        </thead>
+        <tbody></tbody>
+    </table>
+</div>
+
+<script src="https://cdn.staticfile.org/jquery/3.4.1/jquery.min.js"></script>
+<script src="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/js/bootstrap.min.js"></script>
+<script src="https://cdn.staticfile.org/layer/2.3/layer.js"></script>
+
+<script>
+    $(function () {
+        setInterval(listTask, 60000);
+        listTask();
+    });
+
+    function listTask() {
+        $.get("./task/list", function (res) {
+            if (res.success) {
+                var data = res.data.records;
+                var tbody = '';
+                for (var i = 0; i < data.length; i++) {
+                    if (data[i].close) {
+                        tbody += '<tr class="table-active">';
+                    } else if (data[i].error) {
+                        tbody += '<tr class="table-danger">';
+                    } else if (data[i].executing) {
+                        tbody += '<tr class="table-info">';
+                    } else {
+                        tbody += '<tr>';
+                    }
+                    tbody += '<td>' + (i + 1) + '</td>' +
+                        '<td>' + data[i].className + '</td>' +
+                        '<td>' + data[i].methodName + '</td>' +
+                        '<td>' + data[i].description + '</td>' +
+                        '<td>' + data[i].cron + '</td>' +
+                        '<td>' + data[i].time + '</td>' +
+                        '<td>' + (data[i].executing ? '<strong>正在执行</strong>' : '等待执行') + '</td>' +
+                        '<td>' + (data[i].lastStartTime || '') + '</td>' +
+                        '<td>' + (data[i].lastSuccessTime || '') + '</td>' +
+                        '<td>' + (data[i].nextExecuteTime || '') + '</td>' +
+                        '<td>' + (data[i].error ? '<strong>异常</strong>' : '正常') + '</td>' +
+                        '<td>' + (data[i].lastErrorTime || '')  + '</td>' +
+                        '<td>' + (data[i].errorMsg || '') + '</td>' +
+                        '<td>';
+                    if (data[i].close || data[i].executing) {
+                        tbody += '<button class="btn btn-primary btn-sm" disabled>执行</button>';
+                    } else {
+                        tbody += '<button class="btn btn-primary btn-sm" sign="' + data[i].sign + '" onclick="execute(this)">执行</button>';
+                    }
+
+                    if (data[i].close) {
+                        tbody += ' <button class="btn btn-secondary btn-sm" sign="' + data[i].sign + '" onclick="closeTask(this)">开启</button>';
+                    } else {
+                        tbody += ' <button class="btn btn-light btn-sm" sign="' + data[i].sign + '" onclick="closeTask(this)">关闭</button>';
+                    }
+                    tbody += '</td></tr>';
+                }
+                $("tbody").html(tbody);
+            }
+        });
+    }
+
+    function execute(item) {
+        var _item = $(item);
+        _item.parent().parent().removeClass("table-danger");
+        _item.parent().parent().addClass("table-info");
+        var sign = _item.attr("sign");
+        _item.attr("disabled", "disabled");
+        $.post("./task/execute", {sign: sign}, function (res) {
+            if (res.success) {
+                layer.msg(res.msg, {icon: 1});
+            } else {
+                layer.msg(res.msg, {icon: 2});
+            }
+            setTimeout(function () {
+                location.reload();
+            }, 3000);
+        });
+    }
+
+    function closeTask(item) {
+        var _item = $(item);
+        var sign = _item.attr("sign");
+        $.post("./task/close", {sign: sign}, function (res) {
+            location.reload();
+        });
+    }
+</script>
+</body>
+</html>
